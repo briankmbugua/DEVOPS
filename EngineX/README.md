@@ -40,3 +40,76 @@ Directives placed in the configuration file outside of any contexts are consider
 The events and http directives reside in the main context.server in http, and location in server.
 # events
 The events section is a required section in nginx configuration files
+# Block directives
+- events {} - The events context is used for setting global configuration regarding how NGINX is going to handle requests on a general level.There can be only one events context in a valid configuration file.
+- http{} - http context is used for defining configurations regarding how the server is going to handle HTTP and HTTPS requests, specifically.There can be only one http context in a valid configuration file.- server {} - The sever context is nested inside the http context andused for configuring specific virtual servers within a single host.There can be multiple server contexts in a valid configuration file nesed inside the http context.Each server context is considered a virtual host.
+- main - The main context is the configuration file itself.Anything written outside of events,http and server contexts is on the main context.
+There can be multiple server contexts within a configuration file.
+# listen directive
+The listen directive is one of the ways to identify the correct server context within a configuration file.
+# Example
+```bash
+http {
+     
+     server {
+            
+	    listen 80;
+	    server_name nginx-handbook.test;
+
+	    return 200 "Hello from port 80!\n";
+     }
+
+     server {
+             listen 8080;
+	     server_name nginx-handbook.test;
+	     return 200 "Hello from port 8080!\n";
+     }
+}
+
+```
+If you send a request to http://nginx-handbook.test:80 then you'll receive "Hello from port 80!".And if you send a request to http://nginx-handbook.test:8080, you'll receive "Hello from port 8080!"
+# server_name directive
+Example
+http {
+     server {
+
+     listen 80;
+     server_name library.test;
+
+     return 200 "Your local library!\n"
+     }
+
+     server {
+      listen 80;
+      server_name librarian.library.test;
+
+      return 200 "Welcome dear librarian!\n"
+     }
+}
+
+Here you're running two separate applications under different server names in the same server.
+```bash
+curl http://library.test
+# Your local library
+curl http://librarian.library.test
+# Welcome dear librarian!
+```
+To make the above demo work, update the hosts file to include these two domain names as well:
+# return directive
+The return directive is responsible for returning a valid response to the user.This directive takes two parameters:The status code and the string message to be returned.
+
+# How to Serve 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
