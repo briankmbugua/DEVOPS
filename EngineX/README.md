@@ -98,7 +98,10 @@ To make the above demo work, update the hosts file to include these two domain n
 # return directive
 The return directive is responsible for returning a valid response to the user.This directive takes two parameters:The status code and the string message to be returned.
 
-# How to Serve 
+# How to Serve Static Content
+
+You have to store static content somewhere in order to serve it.
+
 
 
 
