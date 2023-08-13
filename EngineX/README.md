@@ -101,9 +101,48 @@ The return directive is responsible for returning a valid response to the user.T
 # How to Serve Static Content
 
 You have to store static content somewhere in order to serve it.
+In the root of the server, there is a directory called /srv in thre.This /srv directory is meant to contain site-specific data whic is served by this system.
+Copy all the files you want to serve in this directory
+# Serving-Static-Content
+```bash
+events {
 
+}
 
+http {
 
+    server {
+
+        listen 80;
+        server_name nginx-handbook.test;
+
+        root /srv/nginx-handbook-projects/static-demo;
+    }
+
+}
+```
+# root directive
+Here the return directive has been by a root directive.This directive is used for declaring the root directory for a site.
+
+By writting root /srv/directory/for/your/site. You are telling NGINX to look for files to serve inside the /srv/directory if any request comes to this server.Since NGINX is a web server, it is smart enough to serve the index.html file by default.
+But after serving the html file enginex did not serve the CSS file
+
+# Stativ File Type Handling in NGINX
+Enginex doesn't know how to handle file types
+
+add types context inside the http context.This type context is used for configuring file types.
+
+```bash
+...
+http{
+types {
+text/html html;
+text/css css;
+}
+}
+```
+By writting `text/html html` in this context you're telling NGINX to parse any file as `text/html` that ends with the html extension.
+By introducing the types context in the configuration, NGINX only parses the files configured by you.
 
 
 
