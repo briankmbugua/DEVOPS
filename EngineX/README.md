@@ -463,6 +463,73 @@ By writting `try_files $uri $uri/ /not_found;` you are instructing NGINX to try 
 Now if you visit, the server, you should get the index.html file just right:
 
 
+# Logging in NGINX
+By default, NGINX'S log files are located inside /var/log/nginx.
+
+If you delete the log files so as NGINX can start logging new ones.
+
+you must use the NGINX reopon signal otherwise NGINX will keep writting logs to the previously open streams and the new files will remain empty
+
+```bash
+# delete old log files
+sudo rm /var/log/nginx/access.log  /var/log/nginx/error.log
+# create new files
+sudo touch /var/log/nginx/access.log /var/log/nginx/error.log
+
+
+# reopen the log files
+
+sudo nginx -s reopen
+```
+Any request to the server will be logged to this file by default.But we can change this behaviour using the `access_log` directive.
+
+```bash
+
+#inside server directive
+
+location / {
+    
+    return 200 "this will be logged to the dafault fiel.\n";
+
+    location = /admin {
+        
+	access_log /var/logs/nginx/admin.log;
+
+	return 200 "This will be logged in a separate file.\n"
+    }
+
+    location = /no_logging {
+         access_log off;
+
+	 return 200 "this will not be logged.\n";
+    }
+}
+```
+### There are eight levels of error messages:
+- debug - Useful debugging info to help determine where the problem lies.
+- info - info msgs that aren't necessary to read but may be good to know.
+- notice - Something normal happend that is worth noting.
+- warn - Something unexpected happend, however is not a cause for concern.- error - Something was unsuccessful.
+- crit - There are problems that need to be critically addressed.
+- alert - Prompt action is required.
+- emerg - The system is in an unstable state and requires immediate action.
+## error_log directive
+you can set the minimum level of a message example to warn.
+
+```bash
+
+# inside server context
+error_log /var/log/error.log warn;
+```
+For most projects, leaving the error configuration as it is should be fine.However you can set the minimum error level to warn, so that you don't have to look at unnecessary entries in the log.
+
+
+
+
+
+
+
+
 
 
 
