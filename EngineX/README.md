@@ -390,9 +390,100 @@ http{
 	    root /srv/nginx-handbook-projects/static-demo;
 
 	    try_files /the-nginx-handbook.jpg  /not_found;
+
+
+	    location /not_found {
+	            
+		    return 404 "Sadly, you've hit a brick wall buddy!"
+	    }
      }
 }
 ```
+the try_files directive has been added.By writting `try_files /the-nginx-handbook.jpg /not_found;` You're instructing NGINX to look for a file named `the-nginx-handbook.jpg` on the root whenever a request is received.If it doesn't exist, go to the `/not_found` location.
+But if you update the configuration to try for a non-existent file such blackhole.jpg.You'll get a 404 response with the message "sadly, you've hit a brick wall buddy!"
+With a `try_files` directive no matter what URL you visit, as long as a request is received by the server and the-nginx-handbook.jpg file is found on the disk, NGINX will send that back.
+Thats why the try_files is often used with the `$uri` NGINX variable.
+
+```bash
+
+events{}
+
+http {
+     
+     include /etc/nginx/mime.types;
+
+     server {
+            
+	    listen 80;
+
+	    server_name nginx-handbook.test;
+
+	    root /srv/nginx-handbook-projects/static-demo;
+
+
+	    try_files $uri  /not_found;
+
+	    location /not_found {
+	             
+		     return 404 "sadly, you've hit a brick wall buddy!"
+	    }
+     }
+}
+```
+
+By writting `try_files  $uri /not_found;` you're instructing NGINX to try for the URI requested by the client first.If it doesn't find that one, then try the next one.
+
+```bash
+curl -i http://nginx-handbook.test/index.html
+
+# you should get the old index.html page also for about.html page.
+
+# a request for a file that doesn't exist, you'll get response from /not_found location.
+
+
+curl -i http://nginx-handbook.test/nothing
+
+# 404 and saydly you've hit a brick wall buddy!
+```
+
+But when you visit the root http://nginx-handbook.test you get a 404 response.This is becuse the $uri variable doesn't correspond to any existing file so NGINX serves the fallback location.
+Update config file like below to fix
+
+```bash
+# everything below root inside the server context
+
+try_file $uri $uri/  /not_found;
+
+location  /not_found {
+        return 404 "sadly, you've hit a brick wall buddy!"
+}
+```
+
+By writting `try_files $uri $uri/ /not_found;` you are instructing NGINX to try for the requested URI first.If that doesn't work then try the requested URI as a directory, and whenever NGINX ends up intp a directory it automatically starts looking for an index.html file.
+Now if you visit, the server, you should get the index.html file just right:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
