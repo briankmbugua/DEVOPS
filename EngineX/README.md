@@ -143,9 +143,256 @@ text/css css;
 ```
 By writting `text/html html` in this context you're telling NGINX to parse any file as `text/html` that ends with the html extension.
 By introducing the types context in the configuration, NGINX only parses the files configured by you.
+# How to Include Partial Config Files
+Mapping file types within the types context may work for small projects, for bigger projects it is cumbersome and error-prone
+In /etc/nginx directory there is a file named mime.types.
+When you look inside the mime.types file you will see a long list of file types and their extensions.
+To use this file
+```bash
+...
+http{
+include /etc/nginx/mime.types;
+
+server {
+...rest of config file
+}
+}
+```
+## include directive
+The old types context has now been replaced with a new include directive.This directive allows you to include content from other configuration files.You will use include to modularize your virtual server configurations.
+
+# Dynamic Routing in NGINX
+## Location Matches
+```bash
+events {}
+http {
+     
+     server {
+
+          listen 80;
+	  server_name nginx-handbook.test;
+
+	  location   /agatha {
+	      
+	        return 200 "Miss Marple.\nHercule Poirot. \n";
+	  }
+     }
+}
+```
+Above we've replaces the root directive with a new location context.
+This context is usually nested inside the server blocks.There can be multiple `location` contexts within a server context.
+If you send a request to `http://nginx-handbook.test/agatha`
+```bash
+curl -i http://nginx-handbook.test/agatha
+#This is what is returned
+HTTP/1.1 200 OK
+Server: nginx/1.18.0 (Ubuntu)
+Date: Mon, 14 Aug 2023 10:19:23 GMT
+Content-Type: text/plain
+Content-Length: 29
+Connection: keep-alive
+
+Miss marple.
+Hercule Poirot.
+```
+Now if you send a request to `http://nginx-handbook.test/agatha-christie` you'll get the same response
+```bash
+curl -i http://nginx-handbook.test/agatha
+HTTP/1.1 200 OK
+Server: nginx/1.18.0 (Ubuntu)
+Date: Mon, 14 Aug 2023 10:19:23 GMT
+Content-Type: text/plain
+Content-Length: 29
+Connection: keep-alive
+
+Miss marple.
+Hercule Poirot.
+```
+This happens because, by writting `location /agatha` you're telling NGINX to match any URI starting with "agatha".This kind of match is called a `prefix match`
+
+To perform an `excat match`, do the following
+```bash
+events {}
+http{
+    
+    server {
+
+          listen 80;
+	  server_name nginx-handbook.test;
+
+
+	  location = /agatha {
+	        return 200 "Miss Marple.\nHercule Poirot.\n";
+	  }
+    }
+}
+```
+
+Adding the = sign before the location URI will instruct NGINX to respond only if the URL matches exactly.If a request is sent to anything but /agatha, you'll get a 404 response.
+```bash
+curl -I http://nginx-handbook.test/agatha-christie
+
+HTTP/1.1 404 Not Found
+Server: nginx/1.18.0 (Ubuntu)
+Date: Wed, 21 Apr 2021 16:14:29 GMT
+Content-Type: text/html
+Content-Length: 162
+Connection: keep-alive
+
+curl -I http://nginx-handbook.test/agatha
+
+HTTP/1.1 200 OK
+Server: nginx/1.18.0 (Ubuntu)
+Date: Wed, 21 Apr 2021 16:15:04 GMT
+Content-Type: text/plain
+Content-Length: 29
+Connection: keep-alive
+```
+Another kind of match in NGINX is the `regex match`.Using this match you can check location URLs against complex regular expressions.
+
+```bash
+events {}
+http{
+     
+     server {
+
+
+     listen 80;
+     server_name nginx-handbook.test;
+
+     location ~ /agatha[0-9] {
+
+     return 200 "Miss marple.\nHercule poirot.\n";
+     }
+     }
+}
+```
+By replacing the previous = sign with a ~ sign, you're telling NGINX to perform a regular expression match.Setting the location to `~ /agatha[0-9]` means NGINX will only respond if there is a number after the word "agatha":
+```bash
+~  curl -I http://nginx-handbook.test/agatha 
+HTTP/1.1 404 Not Found
+Server: nginx/1.18.0 (Ubuntu)
+Date: Mon, 14 Aug 2023 23:47:13 GMT
+Content-Type: text/html
+`Content-Length: 162
+Connection: keep-alive
+
+~  curl -I http://nginx-handbook.test/agatha8
+HTTP/1.1 200 OK
+Server: nginx/1.18.0 (Ubuntu)
+Date: Mon, 14 Aug 2023 23:47:18 GMT
+Content-Type: text/plain
+Content-Length: 29
+Connection: keep-alive
+```
+A `regext match` is by default case sensitive,To turn it into case insensitive, add `*` after the `~` sign.
+```bash
+# inside server context
+location ~* /agatha[0-9]
+```
+
+NGINX assings priority values to these matches, and a rgex match has more priority than a prefix match.
+There is also preferential prefix match.
+
+# List of all the matches in descending order of priority is as follows
+- Exact   =
+- Preferential Prefix   ^~
+- REGEX    ~or~*
+- Prefix   None
+
+# Variables in NGINX
+The `set` directive can be used to declare new variables anywhere within the configuration file
+```bash
+set $<variable_name> <variable_value>;
+set name "Farham"
+set age 25
+set is_working true
+```
+Variables can be of three types
+- String
+- Integer
+- Boolean
+
+Apart from the varibales you declared, there are embedded variables within NGINX modules.
+For a variable to be accessible in the configuration, NGINX has to be built with the module embedding the variable.
+
+# Redirects and Rewrites
+## config file for a redirect
+```bash
+events {}
+http {
+      
+      include /etc/nginx/mimi.types;
+
+      server {
+             
+	     listen 80;
+	     server_name nginx-handbook.test;
+
+	     root /srv/nginx-handbook-projects/static-demo;
+
+
+	     location = /index_page {
+	                return 307 /index.html;
+	     }
+	     location = /about_page {
+	                return 307 /about.html;
+	     }
+      }
+}
+```
+Now if you send a request to `http://nginx-handbook.test/about_page`, you'll be redirected to `http://nginx-handbook.test/about.html`.
+If you visit `http://nginx-handbook.test/about_page` you will see that the URL will automatically change to `http://nginx-handbook.test/about.html`.
+# rewrite directive
+A rewrite directive works a little differently.It changes the URI internally without letting the user know.
+
+## Example
+```bash
+events {}
+http {
+      
+      include /etc/nginx/mime.types;
+
+      server {
+             
+	     listen 80;
+
+	     server_name nginx-handbook.test;
+
+	     root /srv/nginx-handbook-projects/static-demo;
+
+	     rewrite /index_page /index.html;
+
+	     rewrite /about_page /about.html;
+      }
+}
+```
+Now if you send a request to `http://nginx-handbook.test/about_page` URI, you'll get a 200 response code and the HTML code for the about.html file in the response
+And if you visit the URI using a browser, you'll see the about.html page while the URL remains unchanged.Apart from the way the URI is handled, there is another difference between redirect and rewrite.When a rewrite happens, the server context gets re-avaluated by NGINX.So, a rewrite is more expensive operation than a redirect.
 
 
 
+# try_files directive
+
+Instead of responding with a single file, the try_files directive lets youcheck for the existence of multiple files.
+
+```bash
+events{}
+http{
+     
+     include /etc/nginx/mime.types;
+
+     server {
+            
+	    listen 80;
+	    server_name nginx-handbook.test;
+
+	    root /srv/nginx-handbook-projects/static-demo;
+
+	    try_files /the-nginx-handbook.jpg  /not_found;
+     }
+}
+```
 
 
 
