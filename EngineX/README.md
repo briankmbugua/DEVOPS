@@ -523,8 +523,35 @@ error_log /var/log/error.log warn;
 ```
 For most projects, leaving the error configuration as it is should be fine.However you can set the minimum error level to warn, so that you don't have to look at unnecessary entries in the log.
 
+# How to Use NGINX as a Reverse Proxy.
+When configured as a reverse proxy, NGINX sits between the client and a back end server.The client sends requests to NGINX, then NGINX passes the request to the back end.
 
+Once the back end server finishes processing the request, it sends it back to NGINX.In turn NGINX returns the response to the client.
+During the whole process, the client doesn't have any idea about who's actually processing the request.
+### Basic and impracticle reverse proxy.
 
+```bash
+events{}
+http {
+     
+     include /etc/nginx/mime.types;
+
+     server {
+          
+	  listen 80;
+
+	  server_name nginx.test;
+
+	  location / {
+	           
+		   proxy_pass "https://nginx.org/";
+	  }
+     }
+}
+```
+Also you must add this address to your hosts file to make this wwork on your system.
+Now if you visit `http://nginx.test` you will be greeted by the original `https://nginx.org` site while the URI remains unchanged.   
+From the above, at a basic level, the `proxy_pass` directive simply passes a client's request to a third party server and reverse proxies the response to the client.
 
 
 
