@@ -553,12 +553,136 @@ Also you must add this address to your hosts file to make this wwork on your sys
 Now if you visit `http://nginx.test` you will be greeted by the original `https://nginx.org` site while the URI remains unchanged.   
 From the above, at a basic level, the `proxy_pass` directive simply passes a client's request to a third party server and reverse proxies the response to the client.
 
+# Node.js with NGINX
+start a simple Nodejs app using pm2
+like the one below
+```javascript
+const http = require('http')
+server = http.createServer((req, res)=>{
+res.setHeader("Content-Type", "application/json")
+res.writeHead(200)
+res.end(`{"status":"success","message":"You are reading the nginx handbook\n"}`)
+})
+server.listen(3000, ()=>{
+console.log(`server running at port 3000`)
+})
+```
+
+now the above application should be running now but should not be accessible from outside the server.
+`curl -i localhost:3000
+# HTTP/1.1 200 OK
+# X-Powered-By: Express
+# Content-Type: application/json; charset=utf-8
+# Content-Length: 62
+# ETag: W/"3e-XRN25R5fWNH2Tc8FhtUcX+RZFFo"
+# Date: Sat, 24 Apr 2021 12:09:55 GMT
+# Connection: keep-alive
+# Keep-Alive: timeout=5
+
+# { "status": "success", "message": "You're reading The NGINX Handbook!"
+`
+If you get a 200 response the server is runnig fine.
+Now configure NGINX as a reverse proxy like below
+```bash
+events{}
+
+http {
+     listen 80;
+     server_name nginx-handbook.test;
+
+     location / {
+           proxy_pass http://localhost:3000;
+     }
+}
+```
+Here you are just passing the received request to the Node.js application running at port 3000.
+If you send a request to the server from the outside you should get a response as follows.
+
+```bash
+curl -i http://nginx-handbook.test
+
+# HTTP/1.1 200 OK
+# Server: nginx/1.18.0 (Ubuntu)
+# Date: Sat, 24 Apr 2021 14:58:01 GMT
+# Content-Type: application/json
+# Transfer-Encoding: chunked
+# Connection: keep-alive
+
+# { "status": "success", "message": "You're reading The NGINX Handbook!" }
+```
+
+
+# How to Use NGINX as a Load Balancer
+
+Due to the reverse proxt desing of NGINX, you can easily configure it as a load balancer.
+start three nodejs servers using pm2 like so 
+```bash
+pm2 start /srv/nginx-handbook-projects/load-balancer-demo/server-1.js
+
+pm2 start /srv/nginx-handbook-projects/load-balancer-demo/server-2.js
+
+pm2 start /srv/nginx-handbook-projects/load-balancer-demo/server-3.js
+
+pm2 list
+
+# ┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+# │ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+# ├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+# │ 0  │ server-1           │ fork     │ 0    │ online    │ 0%       │ 37.4mb   │
+# │ 1  │ server-2           │ fork     │ 0    │ online    │ 0%       │ 37.2mb   │
+# │ 2  │ server-3           │ fork     │ 0    │ online    │ 0%       │ 37.1mb   │
+# └────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+```
+Now three Node.js servers should be running on localhost:3001,localhost:3002,localhost:3003 respectively.
 
 
 
+Set the nginx config file as follows
+```bash
+events {}
+
+http {
+    upstream backend_servers {
+        
+	server localhost:3001;
+	server localhost:3002;
+	server localhost:3003;
+    }
+
+    server {
+        
+	listen 80;
+	server_name nginx-handbook.test;
+
+	location / {
+	   
+	    proxy_pass http://backend_servers;
+	}
+    }
+}
+```
+
+## upstream context
+An upstream in NGINX is a collection of servers that can be treated as a single backend.
+So the three servers started using PM2 can be put inside a single upstream and you can let NGINX balance the load between them.
+
+test the configuration by sending a number of requests to the server using a while loop in bash to automate the process
 
 
+```bash
+while sleep 0.5; do curl http://nginx-handbook.test; done
 
+# response from server - 2.
+# response from server - 3.
+# response from server - 1.
+# response from server - 2.
+# response from server - 3.
+# response from server - 1.
+# response from server - 2.
+# response from server - 3.
+# response from server - 1.
+# response from server - 2.
+```
 
 
 
